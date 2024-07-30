@@ -43,25 +43,25 @@
         <h2 class="text-center">I WOULD LIKE TO DONATE:</h2>
         <div class="row mt-4 donation-buttons">
             <div class="col-md-3">
-                <button id="donate-11" class="btn btn-success donation-btn active">
+                <button id="donate-11" class="btn donation-btn active">
                     $11
                     <span>= a week's worth of meals</span>
                 </button>
             </div>
             <div class="col-md-3">
-                <button id="donate-33" class="btn btn-success donation-btn">
+                <button id="donate-33" class="btn donation-btn">
                     $33
                     <span>= Meals for a mum and two kids</span>
                 </button>
             </div>
             <div class="col-md-3">
-                <button id="donate-52" class="btn btn-success donation-btn">
+                <button id="donate-52" class="btn donation-btn">
                     $52
                     <span>= 100 meals for families in need</span>
                 </button>
             </div>
             <div class="col-md-3">
-                <button id="donate-other" class="btn btn-success donation-btn">
+                <button id="donate-other" class="btn donation-btn">
                     Other
                 </button>
             </div>
@@ -130,136 +130,145 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const individualBtn = document.getElementById('individual-btn');
+            const companyBtn = document.getElementById('company-btn');
+            const donateButtons = document.querySelectorAll('.donation-btn');
+            const amountGroup = document.getElementById('amount-group');
+            const companyGroup = document.getElementById('company-group');
+            const receiptGroup = document.getElementById('receipt-group');
+            const donationForm = document.getElementById('donation-form');
             const urlParams = new URLSearchParams(window.location.search);
             const editIndex = urlParams.get('editIndex');
+            let selectedAmount = "$11"; // Default to $11
+
             let donations = JSON.parse(localStorage.getItem('donations')) || [];
-
-            const companyBtn = document.getElementById('company-btn');
-            const individualBtn = document.getElementById('individual-btn');
-            const amountInput = document.getElementById('amount');
-
-            // Set default donation amount
-            const defaultAmount = 11;
-
-            if (!companyBtn.classList.contains('btn-success')) {
-                amountInput.value = defaultAmount;
-            }
+            let isEditing = false;
 
             if (editIndex !== null) {
-                const donation = donations[editIndex];
-                amountInput.value = donation.amount;
+                isEditing = true;
+                const donationToEdit = donations[editIndex];
+                loadFormWithDonation(donationToEdit);
+            }
+
+            individualBtn.addEventListener('click', function () {
+                resetForm();
+                setIndividualForm();
+            });
+
+            companyBtn.addEventListener('click', function () {
+                resetForm();
+                setCompanyForm();
+            });
+
+            donateButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    selectAmount(this);
+                });
+            });
+
+            donationForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                if (validateForm()) {
+                    const donation = getFormData();
+                    if (isEditing) {
+                        donations[editIndex] = donation;
+                    } else {
+                        donations.push(donation);
+                    }
+                    localStorage.setItem('donations', JSON.stringify(donations));
+                    window.location.href = 'display.html';
+                }
+            });
+
+            function loadFormWithDonation(donation) {
+                if (donation.companyName) {
+                    setCompanyForm();
+                    document.getElementById('companyName').value = donation.companyName;
+                    document.getElementById('role').value = donation.role;
+                } else {
+                    setIndividualForm();
+                }
+                selectedAmount = donation.amount;
+                if (["$11", "$33", "$52"].includes(donation.amount)) {
+                    selectAmount(document.getElementById(`donate-${donation.amount.replace('$', '')}`));
+                } else {
+                    selectAmount(document.getElementById('donate-other'));
+                    document.getElementById('amount').value = donation.amount.replace('$', '');
+                }
                 document.getElementById('firstName').value = donation.firstName;
                 document.getElementById('lastName').value = donation.lastName;
                 document.getElementById('email').value = donation.email;
                 document.getElementById('phone').value = donation.phone;
                 document.getElementById('message').value = donation.message;
                 document.getElementById('newsletter').checked = donation.newsletter;
-
                 if (donation.companyName) {
-                    document.getElementById('companyName').value = donation.companyName;
-                    document.getElementById('role').value = donation.role;
                     document.getElementById('receipt').checked = donation.receipt;
-                    document.getElementById('company-group').classList.remove('hidden');
-                    document.getElementById('receipt-group').classList.remove('hidden');
-                    companyBtn.classList.add('btn-success');
-                    companyBtn.classList.remove('btn-outline-success');
-                    amountInput.value = ''; // Ensure amount field is blank
-                    document.getElementById('amount-group').classList.remove('hidden'); // Ensure amount field is shown
-                    document.querySelectorAll('.donation-btn').forEach(button => button.classList.add('hidden')); // Hide donation buttons
                 }
-
-                document.getElementById('donation-form').addEventListener('submit', function (e) {
-                    e.preventDefault();
-
-                    if (!validateForm()) {
-                        return;
-                    }
-
-                    const updatedDonation = {
-                        amount: `$${amountInput.value}`,
-                        firstName: document.getElementById('firstName').value,
-                        lastName: document.getElementById('lastName').value,
-                        email: document.getElementById('email').value,
-                        phone: document.getElementById('phone').value,
-                        message: document.getElementById('message').value,
-                        newsletter: document.getElementById('newsletter').checked,
-                        companyName: document.getElementById('companyName').value,
-                        role: document.getElementById('role').value,
-                        receipt: document.getElementById('receipt').checked,
-                    };
-
-                    donations[editIndex] = updatedDonation;
-                    localStorage.setItem('donations', JSON.stringify(donations));
-                    window.location.href = 'display.html';
-                });
-            } else {
-                document.getElementById('donation-form').addEventListener('submit', function (e) {
-                    e.preventDefault();
-
-                    if (!validateForm()) {
-                        return;
-                    }
-
-                    const newDonation = {
-                        amount: `$${amountInput.value}`,
-                        firstName: document.getElementById('firstName').value,
-                        lastName: document.getElementById('lastName').value,
-                        email: document.getElementById('email').value,
-                        phone: document.getElementById('phone').value,
-                        message: document.getElementById('message').value,
-                        newsletter: document.getElementById('newsletter').checked,
-                        companyName: document.getElementById('companyName').value,
-                        role: document.getElementById('role').value,
-                        receipt: document.getElementById('receipt').checked,
-                    };
-
-                    donations.push(newDonation);
-                    localStorage.setItem('donations', JSON.stringify(donations));
-                    window.location.href = 'display.html';
-                });
             }
 
-            individualBtn.addEventListener('click', function () {
-                document.getElementById('company-group').classList.add('hidden');
-                document.getElementById('receipt-group').classList.add('hidden');
-                companyBtn.classList.remove('btn-success');
+            function resetForm() {
+                donationForm.reset();
+                document.querySelectorAll('.error').forEach(function (span) {
+                    span.textContent = '';
+                });
+                selectedAmount = "$11";
+                selectAmount(document.getElementById('donate-11'));
+            }
+
+            function setIndividualForm() {
+                individualBtn.classList.add('btn-success');
+                individualBtn.classList.remove('btn-outline-success');
                 companyBtn.classList.add('btn-outline-success');
-                this.classList.add('btn-success');
-                this.classList.remove('btn-outline-success');
-                document.getElementById('amount-group').classList.add('hidden');
-                document.querySelectorAll('.donation-btn').forEach(button => button.classList.remove('hidden'));
-                amountInput.value = defaultAmount; // Reset to default amount
-            });
+                companyBtn.classList.remove('btn-success');
+                companyGroup.classList.add('hidden');
+                receiptGroup.classList.add('hidden');
+                amountGroup.classList.add('hidden');
+                document.querySelectorAll('.donation-buttons .col-md-3').forEach(col => col.classList.remove('hidden'));
+                if (!selectedAmount) {
+                    selectedAmount = "$11";
+                    selectAmount(document.getElementById('donate-11'));
+                }
+            }
 
-            companyBtn.addEventListener('click', function () {
-                document.getElementById('company-group').classList.remove('hidden');
-                document.getElementById('receipt-group').classList.remove('hidden');
-                this.classList.add('btn-success');
-                this.classList.remove('btn-outline-success');
-                individualBtn.classList.remove('btn-success');
+            function setCompanyForm() {
+                companyBtn.classList.add('btn-success');
+                companyBtn.classList.remove('btn-outline-success');
                 individualBtn.classList.add('btn-outline-success');
-                amountInput.value = ''; // Ensure amount field is blank
-                document.getElementById('amount-group').classList.remove('hidden'); // Ensure amount field is shown
-                document.querySelectorAll('.donation-btn').forEach(button => button.classList.add('hidden')); // Hide donation buttons
-            });
+                individualBtn.classList.remove('btn-success');
+                companyGroup.classList.remove('hidden');
+                receiptGroup.classList.remove('hidden');
+                document.querySelectorAll('.donation-buttons .col-md-3').forEach(col => col.classList.add('hidden'));
+                selectAmount(document.getElementById('donate-other'));
+                amountGroup.classList.remove('hidden');
+            }
 
-            document.getElementById('donate-other').addEventListener('click', function () {
-                document.getElementById('amount-group').classList.remove('hidden');
-                document.querySelectorAll('.donation-btn').forEach(button => {
-                    button.classList.remove('active');
+            function selectAmount(button) {
+                donateButtons.forEach(btn => {
+                    btn.classList.remove('active');
                 });
-                this.classList.add('active');
-            });
+                button.classList.add('active');
+                selectedAmount = button.id === 'donate-other' ? null : `$${parseInt(button.id.split('-')[1])}`;
+                if (button.id === 'donate-other') {
+                    amountGroup.classList.remove('hidden');
+                } else {
+                    amountGroup.classList.add('hidden');
+                }
+            }
 
-            document.querySelectorAll('.donation-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    const amount = button.id.split('-')[1];
-                    amountInput.value = amount !== 'other' ? amount : '';
-                    document.getElementById('amount-group').classList.toggle('hidden', amount !== 'other');
-                    document.querySelectorAll('.donation-btn').forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                });
-            });
+            function getFormData() {
+                return {
+                    amount: selectedAmount || `$${parseFloat(document.getElementById('amount').value)}`,
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    message: document.getElementById('message').value,
+                    newsletter: document.getElementById('newsletter').checked,
+                    companyName: document.getElementById('companyName').value,
+                    role: document.getElementById('role').value,
+                    receipt: document.getElementById('receipt').checked,
+                };
+            }
 
             function validateForm() {
                 let isValid = true;
@@ -270,7 +279,7 @@
                 });
 
                 // Validate amount if other is selected or company form is shown
-                let amount = amountInput.value.replace('$', '');
+                let amount = document.getElementById('amount').value;
                 if ((document.getElementById('donate-other').classList.contains('active') || companyBtn.classList.contains('btn-success')) && (amount === '' || parseFloat(amount) <= 0)) {
                     document.getElementById('amount-error').textContent = 'Please enter a valid amount.';
                     isValid = false;
@@ -362,9 +371,9 @@
                     document.getElementById('receipt-error').textContent = '';
                 }
             });
+
         });
     </script>
-
 
 </body>
 
